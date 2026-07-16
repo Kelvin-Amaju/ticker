@@ -76,7 +76,7 @@ export async function GET() {
       const body = await res.text().catch(() => "");
       console.error(`[market] NGX Pulse returned ${res.status}: ${body}`);
       return NextResponse.json(
-        { error: `Upstream error ${res.status}` },
+        { error: `NGX Pulse returned ${res.status}` },
         { status: res.status >= 500 ? 502 : res.status }
       );
     }
@@ -91,7 +91,17 @@ export async function GET() {
       );
     }
 
-    const data: MarketAsset[] = raw.map(toMarketAsset);
+    const data: MarketAsset[] = raw
+      .filter((stock) => typeof stock.symbol === "string" && stock.symbol.length > 0)
+      .map(toMarketAsset);
+
+    if (data.length === 0 && raw.length > 0) {
+      console.error("[market] NGX Pulse returned stocks without ticker symbols");
+      return NextResponse.json(
+        { error: "NGX Pulse returned invalid stock records" },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json(data, {
       headers: {

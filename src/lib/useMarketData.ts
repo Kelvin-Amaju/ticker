@@ -15,20 +15,18 @@ export function useMarketData() {
 
   const fetchData = useCallback(async () => {
     try {
-      // 1. Use the NEXT_PUBLIC_ prefix
-      // 2. Fallback to an empty string if it's undefined to prevent "/undefined/..." URLs
-      const apiBase = process.env.NEXT_PUBLIC_NGX_API_BASE || "";
-      const url = `${apiBase}/api/market`;
-      
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error("Market fetch failed");
+      // This is deliberately same-origin. The app route attaches NGX_API_KEY
+      // server-side; pointing this request at NGX Pulse would call an endpoint
+      // that does not exist there and would bypass the server-side API key.
+      const res = await fetch("/api/market", { cache: "no-store" });
+      if (!res.ok) throw new Error(`Market fetch failed (${res.status})`);
       const fresh: MarketAsset[] = await res.json();
       setData(fresh);
       setIsOffline(false);
       const now = Date.now();
       setLastUpdated(now);
       await set(MARKET_CACHE_KEY, { data: fresh, timestamp: now });
-    } catch (error) {
+    } catch {
       // Offline or request failed — fall back to last cached snapshot.
       const cached = await get<{ data: MarketAsset[]; timestamp: number }>(
         MARKET_CACHE_KEY

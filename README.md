@@ -1,11 +1,13 @@
 # Ticker — NGX Portfolio Tracker
 
 A local-first, mobile PWA for tracking a Nigerian Exchange (NGX) portfolio.
-No database, no accounts — everything (passcode, holdings, favorites) lives
-in the browser's IndexedDB/localStorage on the user's device.
+No database or accounts: the passcode, holdings, and favorites stay in the
+browser's IndexedDB/localStorage on the user's device.
 
 ## Stack
-Next.js 15 (App Router, TypeScript) · Tailwind CSS · idb-keyval · Web Crypto (SHA-256 passcode hashing) · @ducanh2912/next-pwa (Workbox)
+
+Next.js, TypeScript, Tailwind CSS, idb-keyval, Web Crypto, and
+@ducanh2912/next-pwa.
 
 ## Getting started
 
@@ -14,16 +16,24 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000 — on first load you'll go through name entry,
-passcode setup, then the dashboard.
+Open http://localhost:3000. On first load, enter a name and set a passcode.
 
-## Important: mock market data
+## Market data
 
-`src/app/api/market/route.ts` currently generates realistic-looking mock
-NGX price/volume data on every request — there's no live NGX data provider
-wired in yet, since none was specified. To go live, replace the body of
-`getMarketData()` with a real `fetch()` call to your data provider, keeping
-the same `MarketAsset[]` return shape:
+The app fetches live NGX equity data from NGX Pulse. Add the API key to
+`.env.local`:
+
+```bash
+NGX_API_KEY=your_key_here
+```
+
+The browser requests the app's same-origin `/api/market` route. That route
+adds the key server-side before it requests
+`https://www.ngxpulse.ng/api/ngxdata/stocks`; never place the key in a
+`NEXT_PUBLIC_` variable. To override the upstream root, set `NGX_API_BASE`.
+
+The route maps the NGX Pulse response to this internal shape, which is shared
+by the dashboard, search, favorites, and Whale Watch:
 
 ```ts
 interface MarketAsset {
@@ -37,29 +47,20 @@ interface MarketAsset {
 }
 ```
 
-Nothing else in the app needs to change — the dashboard, search, favorites,
-and Whale Watch all consume this same shape.
-
 ## Deploying
 
-Push to GitHub and import into Vercel — no environment variables or
-separate backend needed. If you swap in a real market data API that
-requires a key, add it as a Vercel environment variable and read it
-server-side inside `route.ts` (it will never reach the client).
+Push to GitHub and import into Vercel. Configure `NGX_API_KEY` as a Vercel
+environment variable so it remains server-side.
 
-For production builds, note this project pins Webpack (not Turbopack) in
-`package.json`'s `build` script, since `@ducanh2912/next-pwa` currently
-generates its service worker via a Webpack plugin.
+For production builds, the project uses Webpack because
+`@ducanh2912/next-pwa` generates its service worker through a Webpack plugin.
 
 ## Icons
 
-Placeholder icons are in `public/icons/`. Swap in your own branded
-192×192, 512×512, and a maskable 512×512 icon before shipping.
+Placeholder icons are in `public/icons/`. Replace the 192×192, 512×512, and
+maskable 512×512 icons before shipping.
 
 ## Fonts
 
-`globals.css` currently falls back to system fonts (Manrope/JetBrains Mono
-aren't bundled). To restore the intended cinematic look, re-add
-`next/font/google` in `src/app/layout.tsx` once you're building somewhere
-with access to fonts.googleapis.com (this was stripped only because the
-sandbox this was built in had no internet access to Google Fonts).
+`globals.css` currently uses system fonts. You can re-add `next/font/google`
+in `src/app/layout.tsx` when building with access to Google Fonts.
