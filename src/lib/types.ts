@@ -48,6 +48,11 @@ export interface MarketAsset {
   sector: string;
 }
 
+export interface HistoricalPrice {
+  date: string;
+  close_price: number;
+}
+
 export interface HoldingPerformance extends Holding {
   current_price: number;
   current_value: number;

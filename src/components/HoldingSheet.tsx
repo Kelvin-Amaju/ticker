@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Sheet from "./Sheet";
 import { addHolding, removeHolding } from "@/lib/storage";
 import { useAppData } from "@/context/AppDataContext";
@@ -20,6 +21,7 @@ export default function HoldingSheet({
   asset,
   hasExistingHolding,
 }: HoldingSheetProps) {
+  const router = useRouter();
   const { refreshAppData } = useAppData();
   const [shares, setShares] = useState("");
   const [price, setPrice] = useState("");
@@ -52,7 +54,18 @@ export default function HoldingSheet({
 
   return (
     <Sheet open={open} onClose={onClose} title={asset.ticker}>
-      <p className="text-sm text-[var(--text-muted)] -mt-3 mb-5">{asset.name}</p>
+      <div className="flex items-start justify-between gap-3 -mt-3 mb-5">
+        <p className="text-sm text-[var(--text-muted)]">{asset.name}</p>
+        <button
+          onClick={() => {
+            onClose();
+            router.push(`/stocks/${asset.ticker}/history`);
+          }}
+          className="shrink-0 rounded-lg border border-[var(--border-hair)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent)]"
+        >
+          Price history
+        </button>
+      </div>
 
       <div className="space-y-4">
         <div>
