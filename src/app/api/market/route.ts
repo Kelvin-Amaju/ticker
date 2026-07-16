@@ -6,8 +6,9 @@ import { MarketAsset } from "@/lib/types";
 // Auth:     X-API-Key header
 // Refresh:  every 20 minutes during market hours (data is live from NGX)
 //
-// Response shape from the API:
-// [
+// Response shape from the API is currently wrapped in an object:
+// {
+//   stocks: [
 //   {
 //     symbol:            string   — NGX ticker (e.g. "DANGCEM")
 //     name:              string   — Full company name
@@ -18,7 +19,10 @@ import { MarketAsset } from "@/lib/types";
 //     sector:            string   — NGX sector classification
 //     pe_ratio:          number   — Price-to-earnings ratio
 //   }
-// ]
+//   ]
+// }
+//
+// Older API responses were a bare array, so both forms are accepted below.
 
 interface NGXPulseStock {
   symbol: string;
@@ -29,6 +33,17 @@ interface NGXPulseStock {
   shares_outstanding: number;
   sector: string;
   pe_ratio: number | null;
+}
+
+function getStocks(payload: unknown): NGXPulseStock[] | null {
+  if (Array.isArray(payload)) return payload as NGXPulseStock[];
+
+  if (typeof payload === "object" && payload !== null) {
+    const stocks = (payload as { stocks?: unknown }).stocks;
+    if (Array.isArray(stocks)) return stocks as NGXPulseStock[];
+  }
+
+  return null;
 }
 
 /** Map NGX Pulse's field names onto our internal MarketAsset shape.
@@ -81,10 +96,10 @@ export async function GET() {
       );
     }
 
-    const raw: NGXPulseStock[] = await res.json();
+    const raw = getStocks(await res.json());
 
-    if (!Array.isArray(raw)) {
-      console.error("[market] Unexpected NGX Pulse response shape:", raw);
+    if (!raw) {
+      console.error("[market] Unexpected NGX Pulse response shape");
       return NextResponse.json(
         { error: "Unexpected response from NGX Pulse" },
         { status: 502 }
