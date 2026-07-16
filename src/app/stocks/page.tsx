@@ -9,10 +9,13 @@ import { formatNaira, formatPercent } from "@/lib/format";
 import HoldingSheet from "@/components/HoldingSheet";
 import { MarketAsset } from "@/lib/types";
 
+type SortOption = "ticker-asc" | "ticker-desc" | "gainers" | "losers";
+
 export default function StocksPage() {
   const { data: marketData, loading } = useMarketData();
   const { appData, refreshAppData } = useAppData();
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortOption>("ticker-asc");
   const [selectedAsset, setSelectedAsset] = useState<MarketAsset | null>(null);
 
   const fuse = useMemo(
@@ -25,9 +28,24 @@ export default function StocksPage() {
   );
 
   const results = useMemo(() => {
-    if (!query.trim()) return marketData;
-    return fuse.search(query).map((r) => r.item);
-  }, [query, fuse, marketData]);
+    const matches = query.trim()
+      ? fuse.search(query).map((result) => result.item)
+      : marketData;
+
+    return [...matches].sort((a, b) => {
+      switch (sort) {
+        case "ticker-desc":
+          return b.ticker.localeCompare(a.ticker);
+        case "gainers":
+          return b.change_percent - a.change_percent;
+        case "losers":
+          return a.change_percent - b.change_percent;
+        case "ticker-asc":
+        default:
+          return a.ticker.localeCompare(b.ticker);
+      }
+    });
+  }, [query, fuse, marketData, sort]);
 
   async function handleToggleFavorite(e: React.MouseEvent, ticker: string) {
     e.stopPropagation();
@@ -57,6 +75,22 @@ export default function StocksPage() {
             placeholder="Search ticker or company"
             className="w-full rounded-xl bg-[var(--bg-surface)] border border-[var(--border-hair)] pl-10 pr-4 py-3 text-sm outline-none focus:border-[var(--accent)] transition"
           />
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <label htmlFor="stock-sort" className="text-xs font-medium text-[var(--text-faint)]">
+            Sort by
+          </label>
+          <select
+            id="stock-sort"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOption)}
+            className="rounded-lg bg-[var(--bg-surface)] border border-[var(--border-hair)] px-3 py-2 text-xs font-medium text-[var(--text-muted)] outline-none focus:border-[var(--accent)] transition"
+          >
+            <option value="ticker-asc">Ticker A–Z</option>
+            <option value="ticker-desc">Ticker Z–A</option>
+            <option value="gainers">Top gainers</option>
+            <option value="losers">Top losers</option>
+          </select>
         </div>
       </header>
 
